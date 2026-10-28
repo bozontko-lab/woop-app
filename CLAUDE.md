@@ -53,7 +53,11 @@ Wszystkie dane zostają na urządzeniu. Treść WOOP-ów nie trafia do analityki
 - Kroki kreatora i ich kolejność: `src/domain/wizard/steps.ts` (silnik: `engine.ts`). Ekrany kroków: `src/features/wizard/steps/`.
 - Walidatory (podpowiedzi): `src/domain/validators/`. Komunikaty podpowiedzi: `pl.nudges` w `src/content/pl.ts`.
 - Wzorcowy WOOP do testów: `src/domain/__fixtures__/reference.ts`. Musi przechodzić bez żadnej podpowiedzi (`src/domain/reference.test.ts`).
-- Zapis: wyłącznie przez `woopRepository` / `settingsRepository` z `src/data/`.
+- Zapis: wyłącznie przez repozytoria z `src/data/` (`woopRepository`, `settingsRepository`, `checkinRepository`, `practiceRepository`, `reviewRepository`, `reminderRepository`, `backup`).
+- Statystyki i zasada liczenia sytuacji z przeszkodą: `src/domain/stats.ts`. Wersje: `versioning.ts`, przegląd: `review.ts`.
+- Przypomnienia: `src/domain/reminders.ts` (domyślne + `.ics`) i `reminderSchedule.ts` („Na dziś”, powiadomienia). Ograniczenia (iOS, kalendarze): `docs/DECISIONS.md`, pkt 41.
+- Kopia zapasowa: `src/domain/backup.ts` + `src/data/backupService.ts`. Zmiana formatu = podbicie `BACKUP_SCHEMA_VERSION` i obsługa starszych plików.
+- Testy E2E zakładają dane względem dzisiejszej daty (`freshWoop`, `seed` w `e2e/helpers.ts`), nigdy na sztywno wpisane daty.
 
 ## Sposób pracy
 

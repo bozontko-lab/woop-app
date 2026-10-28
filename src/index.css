@@ -19,12 +19,17 @@
   --wish: #b45309;
   --outcome: #0f766e;
   --obstacle: #be123c;
+  --obstacle-hover: #9f1239;
+  --on-obstacle: #ffffff;
   --plan: #4338ca;
   --hint-bg: #fef3c7;
   --hint-fg: #713f12;
   --hint-line: #d97706;
   --danger: #b91c1c;
   --ok: #15803d;
+  /* Chart series: slots 1–2 of the validated dataviz palette (light). */
+  --viz-1: #2a78d6;
+  --viz-2: #eb6834;
   color-scheme: light;
 }
 
@@ -44,12 +49,17 @@
   --wish: #fcd34d;
   --outcome: #5eead4;
   --obstacle: #fda4af;
+  --obstacle-hover: #fecdd3;
+  --on-obstacle: #4c0519;
   --plan: #a5b4fc;
   --hint-bg: #3a2a06;
   --hint-fg: #fde68a;
   --hint-line: #d97706;
   --danger: #fca5a5;
   --ok: #86efac;
+  /* Chart series: the same slots stepped for the dark surface. */
+  --viz-1: #3987e5;
+  --viz-2: #d95926;
   color-scheme: dark;
 }
 
@@ -69,12 +79,16 @@
   --color-wish: var(--wish);
   --color-outcome: var(--outcome);
   --color-obstacle: var(--obstacle);
+  --color-obstacle-hover: var(--obstacle-hover);
+  --color-on-obstacle: var(--on-obstacle);
   --color-plan: var(--plan);
   --color-hint-bg: var(--hint-bg);
   --color-hint-fg: var(--hint-fg);
   --color-hint-line: var(--hint-line);
   --color-danger: var(--danger);
   --color-ok: var(--ok);
+  --color-viz-1: var(--viz-1);
+  --color-viz-2: var(--viz-2);
 }
 
 @theme {

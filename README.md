@@ -6,6 +6,16 @@ Prywatna aplikacja PWA (mobile-first, po polsku), która prowadzi krok po kroku 
 - Architektura: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - Decyzje i założenia: [`docs/DECISIONS.md`](docs/DECISIONS.md)
 
+## Co jest w aplikacji
+
+- **Kreator WOOP** w stałej kolejności W → O → O → P, z pytaniami pomocniczymi, pauzami na wizualizację, testem realności i podpowiedziami, które niczego nie blokują. Do tego **szybki WOOP na dziś** (ok. 3 min).
+- **Karta WOOP**: tekst, PNG (tapeta i kwadrat), wydruk A6, `.md`, `.json`, historia wersji.
+- **Codzienne utrzymanie**: „Przeszkoda teraz!” z planem i 2-minutowym licznikiem, powtórka ok. 60 s, check-in poniżej 15 s, lista „Na dziś”.
+- **Postępy bez streaków**: odsetek użycia planu, trend tygodniowy, kalendarz, „X z 7 dni”.
+- **Przegląd tygodniowy** z wersjonowaniem i **zakończenie** z refleksją.
+- **Przypomnienia**: eksport do kalendarza (`.ics` z alarmem) i powiadomienia, gdy aplikacja działa (ograniczenia: `docs/DECISIONS.md`, pkt 41).
+- **Biblioteka** (moje przeszkody i plany, gotowe przykłady), **„Jak to działa”**, **kopia zapasowa** JSON.
+
 ## Uruchomienie
 
 Wymagany Node.js 22.22+ (wersja w `.nvmrc`).
@@ -44,18 +54,20 @@ Każdy push na `main` zbuduje i opublikuje nową wersję. Aplikacja zainstalowan
 ```
 src/
 ├─ content/      pl.ts – wszystkie teksty i słowniki
-├─ domain/       czysta logika: walidatory, silnik kreatora, podsumowanie, .ics, karta PNG
+├─ domain/       czysta logika: walidatory, silnik kreatora, podsumowanie, .ics, karta PNG,
+│                statystyki, wersje, przegląd, przypomnienia, biblioteka, kopia zapasowa
 ├─ data/         Dexie (IndexedDB) za repozytoriami + hooki
 ├─ components/   klocki UI (dostępne, z tokenami motywu)
-├─ features/     ekrany: kreator, karta, „Co dalej”, ekran główny, ustawienia
-├─ lib/          integracje z przeglądarką (schowek, pliki, canvas, dźwięk, PWA)
+├─ features/     ekrany: kreator, karta, postępy, „Co dalej”, „Przeszkoda teraz!”, powtórka,
+│                check-in, przegląd, zakończenie, biblioteka, „Jak to działa”, ustawienia
+├─ lib/          integracje z przeglądarką (schowek, pliki, canvas, dźwięk, PWA, powiadomienia)
 └─ app/          router, layouty, motyw
-e2e/             testy Playwright (kreator, szkic, eksporty, offline, dostępność)
+e2e/             testy Playwright (kreator, szkic, eksporty, offline, Etap 2, dostępność)
 ```
 
 ## Prywatność
 
-Bez kont, bez serwera, bez analityki i bez zewnętrznych skryptów czy fontów. Dane są w pamięci przeglądarki na tym urządzeniu. Wyczyszczenie danych przeglądarki usuwa też WOOP-y. Kopia zapasowa (eksport/import JSON) wchodzi w Etapie 2.
+Bez kont, bez serwera, bez analityki i bez zewnętrznych skryptów czy fontów. Dane są w pamięci przeglądarki na tym urządzeniu. Wyczyszczenie danych przeglądarki usuwa też WOOP-y, dlatego warto co jakiś czas pobrać kopię zapasową (**Ustawienia → Kopia zapasowa**). Plik JSON można potem wczytać na tym samym albo innym urządzeniu.
 
 ## Metoda
 

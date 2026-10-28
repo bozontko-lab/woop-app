@@ -1,23 +1,22 @@
-import { CalendarPlus, Download } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { useState } from 'react';
-import { useParams } from 'react-router';
 import { WoopNotFound } from '../../app/errors';
+import { useTodayISO } from '../../app/time';
 import { useDocumentTitle } from '../../app/useDocumentTitle';
 import { pl } from '../../content/pl';
 import { t } from '../../content/t';
 import { Button, ButtonLink } from '../../components/ui/Button';
-import { ChipGroup } from '../../components/ui/ChipGroup';
 import { TextInput } from '../../components/ui/Field';
 import { Loading } from '../../components/ui/Loading';
 import { LiveMessage } from '../../components/ui/Notice';
 import { woopRepository } from '../../data';
-import { useWoop } from '../../data/hooks';
-import { formatLongDate, isISODate, todayISO } from '../../domain/dates';
-import { buildWoopCalendar, DEFAULT_REMINDER_TIME, type ReminderDays } from '../../domain/reminders';
-import { exportFileName } from '../../domain/summary/format';
+import { formatLongDate, isISODate } from '../../domain/dates';
+import { isReviewDue } from '../../domain/review';
 import type { Woop } from '../../domain/types';
-import { downloadText } from '../../lib/download';
 import { promptInstall, useInstallState } from '../../lib/install';
+import { ReminderSettings } from '../reminders/ReminderSettings';
+import { useLoadedWoop } from '../woop/useLoadedWoop';
+import { WoopTabs } from '../woop/WoopTabs';
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
@@ -30,64 +29,9 @@ function Section({ id, title, children }: { id: string; title: string; children:
   );
 }
 
-function Reminders({ woop }: { woop: Woop }) {
-  const r = pl.nextSteps.reminders;
-  const [time, setTime] = useState(woop.obstacle.time || DEFAULT_REMINDER_TIME);
-  const [days, setDays] = useState<ReminderDays>('daily');
-  const [includeReview, setIncludeReview] = useState(true);
-  const [message, setMessage] = useState<string | null>(null);
-
-  const download = () => {
-    const ics = buildWoopCalendar(
-      woop,
-      { time: time || DEFAULT_REMINDER_TIME, days, includeReview, from: todayISO() },
-      new Date(),
-    );
-    const name = exportFileName(woop, 'ics');
-    downloadText(ics, name, 'text/calendar');
-    setMessage(t(pl.summary.downloaded, { name }));
-  };
-
-  return (
-    <Section id="reminders-title" title={r.title}>
-      <p className="text-muted">{r.body}</p>
-      <TextInput type="time" label={r.time} value={time} onValueChange={setTime} className="max-w-40" />
-      <ChipGroup
-        legend={r.days}
-        options={(Object.keys(r.daysOptions) as ReminderDays[]).map((value) => ({
-          value,
-          label: r.daysOptions[value],
-        }))}
-        value={days}
-        onChange={setDays}
-      />
-      {woop.timeframe && (
-        <p className="text-sm text-muted">{t(r.until, { date: formatLongDate(woop.timeframe.endDate, pl.locale) })}</p>
-      )}
-      {woop.reviewDate && (
-        <label className="flex min-h-11 items-center gap-3">
-          <input
-            type="checkbox"
-            checked={includeReview}
-            onChange={(event) => setIncludeReview(event.target.checked)}
-            className="size-5 accent-[var(--primary)]"
-          />
-          {r.includeReview}
-        </label>
-      )}
-      <div>
-        <Button onClick={download} icon={<CalendarPlus aria-hidden="true" className="size-5" />}>
-          {r.download}
-        </Button>
-      </div>
-      <p className="text-sm text-muted">{r.hint}</p>
-      <LiveMessage message={message} />
-    </Section>
-  );
-}
-
 function Review({ woop }: { woop: Woop }) {
   const r = pl.nextSteps.review;
+  const today = useTodayISO();
   const [date, setDate] = useState(woop.reviewDate ?? '');
   const [message, setMessage] = useState<string | null>(null);
   const save = async () => {
@@ -98,14 +42,14 @@ function Review({ woop }: { woop: Woop }) {
   return (
     <Section id="review-title" title={r.title}>
       <p className="text-muted">{r.body}</p>
-      <TextInput
-        type="date"
-        label={r.label}
-        min={todayISO()}
-        value={date}
-        onValueChange={setDate}
-        className="max-w-52"
-      />
+      {woop.status === 'active' && (
+        <div>
+          <ButtonLink to={`/woop/${woop.id}/review`} variant={isReviewDue(woop, today) ? 'primary' : 'secondary'}>
+            {pl.review.start}
+          </ButtonLink>
+        </div>
+      )}
+      <TextInput type="date" label={r.label} min={today} value={date} onValueChange={setDate} className="max-w-52" />
       <div>
         <Button variant="secondary" onClick={() => void save()} disabled={!isISODate(date)}>
           {r.save}
@@ -142,20 +86,26 @@ function Install() {
 }
 
 export function NextStepsPage() {
-  const { id } = useParams();
-  const loaded = useWoop(id);
+  const loaded = useLoadedWoop();
   const n = pl.nextSteps;
   useDocumentTitle(n.title);
-  if (loaded.status === 'loading') return <Loading />;
-  const woop = loaded.value;
-  if (!woop) return <WoopNotFound />;
+  if (loaded.state === 'loading') return <Loading />;
+  if (loaded.state === 'missing') return <WoopNotFound />;
+  const { woop } = loaded;
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
+        <p className="text-sm font-semibold text-muted">{woop.wish.short || woop.wish.text}</p>
         <h1 className="text-3xl font-bold">{n.title}</h1>
         <p className="text-lg text-muted">{n.intro}</p>
       </header>
-      <Reminders woop={woop} />
+      <WoopTabs woopId={woop.id} />
+      {woop.status === 'active' && (
+        <Section id="reminders-title" title={pl.reminders.title}>
+          <p className="text-muted">{pl.reminders.intro}</p>
+          <ReminderSettings woop={woop} />
+        </Section>
+      )}
       <Review woop={woop} />
       <Install />
       <div className="flex flex-wrap gap-3">

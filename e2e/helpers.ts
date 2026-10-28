@@ -1,9 +1,24 @@
 import { expect, type Page } from '@playwright/test';
 import { pl } from '../src/content/pl';
 import { REFERENCE, referenceWoop } from '../src/domain/__fixtures__/reference';
-import type { Woop } from '../src/domain/types';
+import { addDays, todayISO } from '../src/domain/dates';
+import { computeTimeframe } from '../src/domain/timeframe';
+import type { Checkin, Practice, Reminder, Woop } from '../src/domain/types';
 
 export { pl, REFERENCE, referenceWoop };
+
+/** The reference WOOP, created today (so date-dependent screens behave the same on any day). */
+export function freshWoop(overrides: Partial<Woop> = {}): Woop {
+  const now = new Date().toISOString();
+  return referenceWoop({
+    createdAt: now,
+    updatedAt: now,
+    activatedAt: now,
+    timeframe: computeTimeframe('month', todayISO()),
+    reviewDate: addDays(todayISO(), 7),
+    ...overrides,
+  });
+}
 
 export const heading = (page: Page) => page.getByRole('heading', { level: 1 });
 export const mainField = (page: Page) => page.locator('main textarea, main input[type="text"]').first();
@@ -108,19 +123,43 @@ export async function completeReferenceWizard(page: Page, options: { realism?: n
   return captions;
 }
 
-/** Puts a WOOP straight into the app's IndexedDB (after the app has created it). */
-export async function seedWoop(page: Page, woop: Woop) {
+type Seed = { woops?: Woop[]; checkins?: Checkin[]; practices?: Practice[]; reminders?: Reminder[] };
+
+/** Puts records straight into the app's IndexedDB (after the app has created it). */
+export async function seed(page: Page, data: Seed) {
   await page.goto('/');
   await expect(heading(page)).toHaveText(pl.home.title);
-  await page.evaluate(async (record) => {
+  await page.evaluate(async (tables) => {
     const request = indexedDB.open('woopmylife');
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
-    const tx = db.transaction('woops', 'readwrite');
-    tx.objectStore('woops').put(record);
+    const names = Object.keys(tables);
+    const tx = db.transaction(names, 'readwrite');
+    for (const name of names)
+      for (const row of tables[name as keyof typeof tables] ?? []) tx.objectStore(name).put(row);
     await new Promise((resolve) => (tx.oncomplete = resolve));
     db.close();
-  }, woop);
+  }, data);
+}
+
+export async function seedWoop(page: Page, woop: Woop) {
+  await seed(page, { woops: [woop] });
+}
+
+export function checkinFor(woopId: string, date: string, extra: Partial<Checkin> = {}): Checkin {
+  const stamp = `${date}T20:00:00.000Z`;
+  return {
+    id: `c-${woopId}-${date}`,
+    woopId,
+    date,
+    obstacleOccurred: true,
+    planUsed: 'yes',
+    rating: 4,
+    note: '',
+    createdAt: stamp,
+    updatedAt: stamp,
+    ...extra,
+  };
 }

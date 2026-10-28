@@ -60,3 +60,23 @@ describe('short versions', () => {
     expect(capitalize('„zrobię”')).toBe('„Zrobię”');
   });
 });
+
+describe('short versions never break a quotation', () => {
+  it('drops an unfinished quote instead of cutting it', () => {
+    expect(suggestShort('Po powrocie do domu siadam i mówię sobie „wyjdę za chwilę, naprawdę”', pl.lexicon, 6)).toBe(
+      'Po powrocie do domu siadam',
+    );
+  });
+
+  it('keeps the obstacle short version within 6 words', () => {
+    const obstacle = {
+      text: 'Po powrocie do domu siadam na kanapie i mówię sobie „wyjdę za chwilę”',
+      short: '',
+      type: null,
+      when: 'po powrocie do domu',
+      where: '',
+      time: '',
+    };
+    expect(suggestObstacleShort(obstacle, pl.lexicon)).toBe('„Wyjdę za chwilę”');
+  });
+});

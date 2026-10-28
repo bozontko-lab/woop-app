@@ -7,4 +7,4 @@ playwright-report
 *.tsbuildinfo
 .DS_Store
 .vite
-*.tmp.mjs
+*.tmp.*

@@ -8,11 +8,12 @@ import { Loading } from '../../components/ui/Loading';
 import { requestPersistentStorage, woopRepository } from '../../data';
 import { useSettings } from '../../data/hooks';
 import { fingerprint } from '../../domain/text/normalize';
-import { STEP_IDS, type Nudge, type StepId, type Woop } from '../../domain/types';
+import { STEP_IDS, type Nudge, type StepId, type VersionReason, type Woop } from '../../domain/types';
 import { validateStep } from '../../domain/validators';
 import { getStep, nextStepId, phaseProgress, prevStepId, resolveStep } from '../../domain/wizard/engine';
 import { activateWoop, releaseWoop } from '../../domain/wizard/lifecycle';
 import type { StepDef } from '../../domain/wizard/steps';
+import { coreEquals, resetForNewObstacle, startNewVersion } from '../../domain/versioning';
 import { getText, isTextField, setText } from '../../domain/woop';
 import { NudgePanel, type NudgeActions } from './NudgePanel';
 import { QuestionHelp } from './QuestionHelp';
@@ -25,6 +26,9 @@ import { useAutosave } from './useAutosave';
 
 const isStepId = (value: string | null): value is StepId =>
   value !== null && (STEP_IDS as readonly string[]).includes(value);
+const REASONS: VersionReason[] = ['edit', 'fixPlan', 'newObstacle', 'changeWish'];
+const toReason = (value: string | null): VersionReason =>
+  REASONS.includes(value as VersionReason) ? (value as VersionReason) : 'edit';
 
 export function WizardPage() {
   const { id = '' } = useParams();
@@ -51,7 +55,17 @@ export function WizardPage() {
   const edit = searchParams.get('edit');
   const editStep = initial.status === 'active' && isStepId(edit) ? edit : null;
   if (initial.status !== 'draft' && !editStep) return <Navigate to={`/woop/${initial.id}`} replace />;
-  return <WizardSession key={`${initial.id}:${editStep ?? 'draft'}`} initial={initial} editStep={editStep} />;
+  const reason = toReason(searchParams.get('reason'));
+  const reset = editStep !== null && searchParams.get('reset') === 'obstacle';
+  return (
+    <WizardSession
+      key={`${initial.id}:${editStep ?? 'draft'}:${reason}`}
+      base={initial}
+      editStep={editStep}
+      reason={reason}
+      reset={reset}
+    />
+  );
 }
 
 function canSkip(step: StepDef, woop: Woop): boolean {
@@ -73,11 +87,25 @@ function canSkip(step: StepDef, woop: Woop): boolean {
 
 const CUSTOM_ACTIONS = new Set<StepDef['kind']>(['visualize', 'release', 'rehearse']);
 
-function WizardSession({ initial, editStep }: { initial: Woop; editStep: StepId | null }) {
+interface SessionProps {
+  /** The WOOP as stored when the session started. */
+  base: Woop;
+  editStep: StepId | null;
+  reason: VersionReason;
+  /** Start a new iteration: clear obstacle and plan (the old ones stay in the history). */
+  reset: boolean;
+}
+
+function WizardSession({ base, editStep, reason, reset }: SessionProps) {
   const navigate = useNavigate();
   const settings = useSettings();
   const editing = editStep !== null;
-  const mode = initial.mode;
+  const mode = base.mode;
+  // Editing a saved WOOP creates a new version on the first real change; the history keeps the old one.
+  const [initial] = useState(() =>
+    reset ? startNewVersion(resetForNewObstacle(base), base, reason, new Date().toISOString()) : base,
+  );
+  const versioned = useRef(reset);
 
   const woopRef = useRef(initial);
   const [woop, setWoop] = useState(initial);
@@ -95,18 +123,28 @@ function WizardSession({ initial, editStep }: { initial: Woop; editStep: StepId 
   const step = getStep(stepId);
   const content = pl.steps[stepId];
   const params = templateParams(woop);
-  const title = t(content.title, params);
+  const quickIntro = mode === 'quick' && stepId === 'start-intro';
+  const title = quickIntro ? pl.quick.title : t(content.title, params);
   useDocumentTitle(title);
 
   const update = useCallback<UpdateWoop>(
     (fn) => {
-      const next = fn(woopRef.current);
+      let next = fn(woopRef.current);
+      if (editing && !versioned.current && !coreEquals(next, base)) {
+        next = startNewVersion(next, base, reason, new Date().toISOString());
+        versioned.current = true;
+      }
       woopRef.current = next;
       setWoop(next);
       schedule();
     },
-    [schedule],
+    [base, editing, reason, schedule],
   );
+
+  // A reset (new iteration) is already a change: store it right away.
+  useEffect(() => {
+    if (reset) schedule();
+  }, [reset, schedule]);
 
   const goTo = useCallback(
     (target: StepId) => {
@@ -282,7 +320,7 @@ function WizardSession({ initial, editStep }: { initial: Woop; editStep: StepId 
       key={stepId}
       progress={phaseProgress(mode, stepId)}
       title={title}
-      subtitle={content.subtitle ? t(content.subtitle, params) : undefined}
+      subtitle={quickIntro ? undefined : content.subtitle ? t(content.subtitle, params) : undefined}
       headingRef={headingRef}
       editing={editing}
       saveError={saveError}
@@ -293,7 +331,11 @@ function WizardSession({ initial, editStep }: { initial: Woop; editStep: StepId 
       nextLabel={step.kind === 'intro' ? pl.intro.start : pl.common.next}
       skip={skip}
       onReturnToSummary={returnToSummary}
-      help={<QuestionHelp why={content.why} help={content.help} examples={content.examples} params={params} />}
+      help={
+        mode === 'quick' ? undefined : (
+          <QuestionHelp why={content.why} help={content.help} examples={content.examples} params={params} />
+        )
+      }
       nudges={
         nudges[0] && <NudgePanel nudge={nudges[0]} index={nudgeTotal - nudges.length} total={nudgeTotal} {...actions} />
       }

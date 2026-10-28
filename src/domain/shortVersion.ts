@@ -56,6 +56,16 @@ function isFunctionWord(word: string, lexicon: Lexicon): boolean {
   return lexicon.functionWords.some((fw) => normalize(fw) === norm);
 }
 
+/** Drops a quotation that the cut left open („wyjdę…”), together with what precedes it. */
+function closeQuotes(text: string, lexicon: Lexicon): string {
+  const open = text.lastIndexOf('„');
+  if (open < 0 || text.indexOf('”', open) >= 0) return text;
+  const words = text.slice(0, open).trim().split(/\s+/u).filter(Boolean);
+  while (words.length > 1 && isFunctionWord(words[words.length - 1]!, lexicon)) words.pop();
+  // Nothing before the quote: keep its beginning and close it („Nie wypada dzwonić…”).
+  return words.length ? trimPunctuation(words.join(' ')) : `${trimPunctuation(text)}…”`;
+}
+
 function cutAtPhraseBoundary(text: string, maxWords: number, lexicon: Lexicon): string {
   const words = text.split(/\s+/u).filter(Boolean);
   if (words.length <= maxWords) return text;
@@ -68,7 +78,7 @@ function cutAtPhraseBoundary(text: string, maxWords: number, lexicon: Lexicon): 
   }
   const kept = words.slice(0, cut);
   while (kept.length > 1 && isFunctionWord(kept[kept.length - 1]!, lexicon)) kept.pop();
-  return trimPunctuation(kept.join(' '));
+  return closeQuotes(trimPunctuation(kept.join(' ')), lexicon);
 }
 
 /**
@@ -100,28 +110,37 @@ function isFirstPersonVerb(word: string): boolean {
 }
 
 /** „Zmęczenie i „zrobię to jutro”” – an emotion noun plus the inner voice, when both are present. */
-export function suggestObstacleShort(obstacle: Obstacle, lexicon: Lexicon): string {
+export function suggestObstacleShort(obstacle: Obstacle, lexicon: Lexicon, maxWords = 6): string {
   const quote = extractQuote(obstacle.text);
   if (quote) {
     const emotion = findMatches(obstacle.text, lexicon.internal.emotion).find((m) => !isFirstPersonVerb(m.text));
-    if (emotion && countWords(emotion.text) <= 2) return `${capitalize(emotion.text.toLowerCase())} i „${quote}”`;
+    if (emotion && countWords(emotion.text) + countWords(quote) + 1 <= maxWords) {
+      return `${capitalize(emotion.text.toLowerCase())} i „${quote}”`;
+    }
     const when = trimPunctuation(obstacle.when);
-    return when ? `${capitalize(when)}: „${quote}”` : `„${quote}”`;
+    if (when && countWords(when) + countWords(quote) <= maxWords) return `${capitalize(when)}: „${quote}”`;
+    if (countWords(quote) <= maxWords) return capitalize(`„${quote}”`);
   }
-  return suggestShort(obstacle.text, lexicon);
+  return suggestShort(obstacle.text, lexicon, maxWords);
 }
 
 const LEADING_ADVERBS = /^(od razu|natychmiast|wtedy|najpierw|po prostu)\s+/iu;
 
-/** „„zrobię to jutro” → założę strój” */
-export function suggestPlanShort(plan: Plan, obstacle: Obstacle, lexicon: Lexicon): string {
+/** „„zrobię to jutro” → założę strój” – at most `maxWords` words in total, like every short version. */
+export function suggestPlanShort(plan: Plan, obstacle: Obstacle, lexicon: Lexicon, maxWords = 6): string {
   const quote = extractQuote(plan.ifText) ?? extractQuote(obstacle.text);
+  const quoteWords = quote ? quote.split(/\s+/u) : [];
   const trigger = quote
-    ? `„${quote}”`
+    ? quoteWords.length <= 3
+      ? `„${quote}”`
+      : `„${trimPunctuation(quoteWords.slice(0, 3).join(' '))}…”`
     : obstacle.short && countWords(obstacle.short) <= 3
       ? lowerFirst(trimPunctuation(obstacle.short))
       : lowerFirst(suggestShort(plan.ifText, lexicon, 3));
-  const action = lowerFirst(suggestShort(trimPunctuation(plan.thenText).replace(LEADING_ADVERBS, ''), lexicon, 4));
+  const actionWords = Math.max(2, maxWords - countWords(trigger));
+  const action = lowerFirst(
+    suggestShort(trimPunctuation(plan.thenText).replace(LEADING_ADVERBS, ''), lexicon, actionWords),
+  );
   if (!trigger) return capitalize(action);
   if (!action) return capitalize(trigger);
   return `${capitalize(trigger)} → ${action}`;

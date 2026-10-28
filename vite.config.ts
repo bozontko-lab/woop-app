@@ -56,6 +56,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
+        importScripts: ['sw-notifications.js'],
       },
     }),
   ],

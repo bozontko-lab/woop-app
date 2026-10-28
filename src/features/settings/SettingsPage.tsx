@@ -5,6 +5,8 @@ import { t } from '../../content/t';
 import { ChipGroup } from '../../components/ui/ChipGroup';
 import { PAUSE_OPTIONS, settingsRepository, type PauseSeconds } from '../../data';
 import { useSettings } from '../../data/hooks';
+import { NotificationsToggle } from '../reminders/NotificationsToggle';
+import { BackupSection } from './BackupSection';
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
@@ -68,6 +70,14 @@ export function SettingsPage() {
             </p>
           </div>
         </div>
+      </Section>
+
+      <Section id="backup-title" title={pl.backup.title}>
+        <BackupSection />
+      </Section>
+
+      <Section id="notifications-title" title={pl.reminders.notifications.title}>
+        <NotificationsToggle showTitle={false} />
       </Section>
 
       <Section id="privacy-title" title={s.privacy.title}>

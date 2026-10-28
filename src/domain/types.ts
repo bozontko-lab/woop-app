@@ -66,8 +66,11 @@ export interface WoopCore {
 }
 
 export interface WoopSnapshot {
+  /** The version this snapshot preserves. */
   version: number;
+  /** When it was replaced by the next version. */
   savedAt: string;
+  /** Why the next version was created (see VersionReason). */
   reason: string;
   core: WoopCore;
 }
@@ -197,3 +200,76 @@ export interface Lexicon {
   verbStoplist: string[];
   conditionalStart: string[];
 }
+
+// ── Stage 2: keeping up with the plan ──────────────────────────────────────
+
+export type PlanUse = 'yes' | 'partly' | 'no';
+
+/** Daily check-in, at most one per WOOP and day. */
+export interface Checkin {
+  id: string;
+  woopId: string;
+  /** Local ISO date. */
+  date: string;
+  obstacleOccurred: boolean;
+  /** Only when the obstacle occurred. */
+  planUsed: PlanUse | null;
+  /** 1–5 */
+  rating: number | null;
+  note: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A single moment: „Przeszkoda teraz!” or the daily rehearsal. */
+export type PracticeKind = 'sos' | 'rehearsal';
+
+export interface Practice {
+  id: string;
+  woopId: string;
+  kind: PracticeKind;
+  /** ISO timestamp. */
+  at: string;
+  /** Local ISO date (for grouping). */
+  date: string;
+  /** For „Przeszkoda teraz!”: was the plan used? */
+  planUsed: PlanUse | null;
+  updatedAt: string;
+}
+
+export type ReviewDecision = 'keep' | 'fixPlan' | 'newObstacle' | 'changeWish' | 'finish';
+
+export interface Review {
+  id: string;
+  woopId: string;
+  /** Local ISO date. */
+  date: string;
+  whatWorked: string;
+  obstacleChanged: boolean | null;
+  planNeedsFix: boolean | null;
+  decision: ReviewDecision;
+  /** WOOP version that was reviewed. */
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ReminderKind = 'obstacle' | 'checkin' | 'review';
+
+export interface Reminder {
+  id: string;
+  woopId: string;
+  kind: ReminderKind;
+  /** HH:MM, local time. */
+  time: string;
+  /** ISO weekdays: 1 = Monday … 7 = Sunday. */
+  days: number[];
+  enabled: boolean;
+  /** Local date of the last system notification (avoids repeats). */
+  lastNotified: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Why a new version of a WOOP was created. */
+export type VersionReason = 'edit' | 'fixPlan' | 'newObstacle' | 'changeWish';

@@ -125,8 +125,16 @@ export function createWoopRepository(db: AppDatabase, options: RepositoryOptions
       return draft;
     },
 
+    /** Removes the WOOP together with its check-ins, practices, reviews and reminders. */
     async remove(id) {
-      await db.woops.delete(id);
+      await db.transaction('rw', [db.woops, db.checkins, db.practices, db.reviews, db.reminders], async () => {
+        await db.woops.delete(id);
+        await Promise.all(
+          [db.checkins, db.practices, db.reviews, db.reminders].map((table) =>
+            table.where('woopId').equals(id).delete(),
+          ),
+        );
+      });
       dropStash(id);
     },
   };

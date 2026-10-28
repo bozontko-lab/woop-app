@@ -1,23 +1,43 @@
 import { pl } from '../content/pl';
 import { t } from '../content/t';
-import { addDays } from './dates';
-import { buildIcs, WEEKDAYS, WEEKEND, type IcsEvent } from './ics';
+import { addDays, todayISO } from './dates';
+import { buildIcs, type IcsDay, type IcsEvent } from './ics';
+import { ALL_DAYS, isoWeekday } from './reminderSchedule';
 import { planSentence } from './summary/format';
-import type { Woop } from './types';
+import type { Reminder, ReminderKind, Woop } from './types';
 
-export type ReminderDays = 'daily' | 'weekdays' | 'weekends';
+export const DEFAULT_REMINDER_TIME: Record<ReminderKind, string> = {
+  obstacle: '19:00',
+  checkin: '21:00',
+  review: '19:00',
+};
 
-export interface CalendarOptions {
-  /** HH:MM */
-  time: string;
-  days: ReminderDays;
-  includeReview: boolean;
-  /** Local date from which reminders start. */
-  from: string;
+const ICS_DAYS: IcsDay[] = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+
+/** Sensible first set: at the obstacle's usual time, an evening check-in, a weekly review. */
+export function defaultReminders(woop: Woop, now: Date, newId: () => string): Reminder[] {
+  const stamp = now.toISOString();
+  const base = { woopId: woop.id, lastNotified: null, createdAt: stamp, updatedAt: stamp };
+  return [
+    {
+      ...base,
+      id: newId(),
+      kind: 'obstacle',
+      time: woop.obstacle.time || DEFAULT_REMINDER_TIME.obstacle,
+      days: ALL_DAYS,
+      enabled: true,
+    },
+    { ...base, id: newId(), kind: 'checkin', time: DEFAULT_REMINDER_TIME.checkin, days: ALL_DAYS, enabled: true },
+    {
+      ...base,
+      id: newId(),
+      kind: 'review',
+      time: DEFAULT_REMINDER_TIME.review,
+      days: [isoWeekday(woop.reviewDate ?? todayISO(now))],
+      enabled: true,
+    },
+  ];
 }
-
-export const DEFAULT_REMINDER_TIME = '19:00';
-const REVIEW_TIME = '19:00';
 
 function cardDescription(woop: Woop): string {
   const s = pl.summary.labels;
@@ -30,39 +50,53 @@ function cardDescription(woop: Woop): string {
   ].join('\n');
 }
 
-export function reminderEvents(woop: Woop, options: CalendarOptions): IcsEvent[] {
-  const title = woop.wish.short || woop.wish.text;
-  const until =
-    woop.timeframe?.endDate && woop.timeframe.endDate >= options.from
-      ? woop.timeframe.endDate
-      : addDays(options.from, 30);
-  const days = options.days === 'daily' ? 'daily' : options.days === 'weekdays' ? WEEKDAYS : WEEKEND;
-  const events: IcsEvent[] = [
-    {
-      uid: `${woop.id}-reminder@woopmylife`,
-      summary: t(pl.nextSteps.reminders.eventTitle, { wish: title }),
-      description: cardDescription(woop),
-      date: options.from,
-      time: options.time,
-      durationMinutes: 10,
-      recurrence: { days, until },
-      alarm: { minutesBefore: 0, description: planSentence(woop.plan) },
-    },
-  ];
-  if (options.includeReview && woop.reviewDate) {
-    events.push({
-      uid: `${woop.id}-review-${woop.reviewDate}@woopmylife`,
-      summary: t(pl.nextSteps.reminders.reviewTitle, { wish: title }),
-      description: `${pl.nextSteps.reminders.reviewDescription}\n\n${cardDescription(woop)}`,
-      date: woop.reviewDate,
-      time: REVIEW_TIME,
-      durationMinutes: 20,
-      alarm: { minutesBefore: 0, description: t(pl.nextSteps.reminders.reviewTitle, { wish: title }) },
-    });
+function toEvent(woop: Woop, reminder: Reminder, from: string, until: string): IcsEvent {
+  const r = pl.nextSteps.reminders;
+  const wish = woop.wish.short || woop.wish.text;
+  const days: IcsDay[] | 'daily' =
+    reminder.days.length === 7 ? 'daily' : [...reminder.days].sort().map((d) => ICS_DAYS[d - 1]!);
+  const base = {
+    uid: `${reminder.id}@woopmylife`,
+    time: reminder.time,
+    durationMinutes: 10,
+    recurrence: { days, until },
+  };
+  switch (reminder.kind) {
+    case 'obstacle':
+      return {
+        ...base,
+        date: from,
+        summary: t(r.eventTitle, { wish }),
+        description: cardDescription(woop),
+        alarm: { minutesBefore: 0, description: planSentence(woop.plan) },
+      };
+    case 'checkin':
+      return {
+        ...base,
+        date: from,
+        summary: t(r.checkinTitle, { wish }),
+        description: `${r.checkinDescription}\n\n${cardDescription(woop)}`,
+        alarm: { minutesBefore: 0, description: t(r.checkinTitle, { wish }) },
+      };
+    case 'review':
+      return {
+        ...base,
+        durationMinutes: 20,
+        date: woop.reviewDate && woop.reviewDate > from ? woop.reviewDate : from,
+        summary: t(r.reviewTitle, { wish }),
+        description: `${r.reviewDescription}\n\n${cardDescription(woop)}`,
+        alarm: { minutesBefore: 0, description: t(r.reviewTitle, { wish }) },
+      };
   }
-  return events;
 }
 
-export function buildWoopCalendar(woop: Woop, options: CalendarOptions, now: Date): string {
-  return buildIcs(reminderEvents(woop, options), now, `-//${pl.app.name}//PL`);
+/** Recurring calendar events for the enabled reminders, until the end of the timeframe. */
+export function reminderEvents(woop: Woop, reminders: readonly Reminder[], from: string): IcsEvent[] {
+  const end = woop.timeframe?.endDate;
+  const until = end && end >= from ? end : addDays(from, 30);
+  return reminders.filter((r) => r.enabled && r.woopId === woop.id).map((r) => toEvent(woop, r, from, until));
+}
+
+export function buildWoopCalendar(woop: Woop, reminders: readonly Reminder[], from: string, now: Date): string {
+  return buildIcs(reminderEvents(woop, reminders, from), now, `-//${pl.app.name}//PL`);
 }

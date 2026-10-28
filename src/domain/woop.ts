@@ -1,3 +1,5 @@
+import { toLocalISODate } from './dates';
+import { computeTimeframe } from './timeframe';
 import type { FieldPath, Woop, WoopCore, WoopMode } from './types';
 
 export function emptyCore(): WoopCore {
@@ -13,9 +15,11 @@ export function emptyCore(): WoopCore {
   };
 }
 
+/** A new draft. The quick mode is always „for today”. */
 export function createDraft(id: string, now: string, mode: WoopMode = 'full'): Woop {
   return {
     ...emptyCore(),
+    timeframe: mode === 'quick' ? computeTimeframe('today', toLocalISODate(new Date(now))) : null,
     id,
     createdAt: now,
     updatedAt: now,

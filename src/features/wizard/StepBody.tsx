@@ -24,7 +24,7 @@ interface StepBodyProps extends StepProps {
 export function StepBody({ realismPanel, onRealismChange, onRelease, ...props }: StepBodyProps) {
   switch (props.step.kind) {
     case 'intro':
-      return <IntroStep />;
+      return <IntroStep woop={props.woop} />;
     case 'timeframe':
       return <TimeframeStep {...props} />;
     case 'area':

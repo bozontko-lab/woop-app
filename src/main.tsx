@@ -7,12 +7,14 @@ import { woopRepository } from './data';
 import './index.css';
 import { initInstallCapture } from './lib/install';
 import { initPwa } from './lib/pwa';
+import { startReminderNotifier } from './lib/reminderNotifier';
 
 initTheme();
 initInstallCapture();
 initPwa();
 // Bring back edits stashed right before the last reload or closed tab.
 void woopRepository.recover();
+startReminderNotifier();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -2,12 +2,14 @@ import { pl } from '../../../content/pl';
 import { PHASE_STYLES } from '../../../components/ui/PhaseProgress';
 import { cx } from '../../../components/ui/cx';
 import { WOOP_PHASES } from '../../../domain/wizard/steps';
+import type { StepProps } from '../types';
 
-export function IntroStep() {
+export function IntroStep({ woop }: Pick<StepProps, 'woop'>) {
+  const paragraphs = woop.mode === 'quick' ? [pl.quick.body] : pl.intro.paragraphs;
   return (
     <>
       <div className="flex flex-col gap-3 text-lg leading-relaxed">
-        {pl.intro.paragraphs.map((paragraph) => (
+        {paragraphs.map((paragraph) => (
           <p key={paragraph}>{paragraph}</p>
         ))}
       </div>
