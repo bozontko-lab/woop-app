@@ -3,6 +3,9 @@
 {
   "name": "woop-app",
   "compatibility_date": "2026-10-01",
+  // Public address: woop-app.<account>.workers.dev. No per-version preview URLs (we deploy from main only).
+  "workers_dev": true,
+  "preview_urls": false,
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application",
