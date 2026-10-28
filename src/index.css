@@ -1,0 +1,151 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Colour tokens. Every text/background pair is checked for WCAG AA contrast. */
+:root {
+  --bg: #faf7f2;
+  --surface: #ffffff;
+  --surface-2: #f2ede4;
+  --fg: #1c2024;
+  --muted: #565d65;
+  --line: #e3dccf;
+  --field: #8b8378;
+  --primary: #0f766e;
+  --primary-hover: #115e59;
+  --on-primary: #ffffff;
+  --primary-soft: #ccfbf1;
+  --focus: #0f766e;
+  --wish: #b45309;
+  --outcome: #0f766e;
+  --obstacle: #be123c;
+  --plan: #4338ca;
+  --hint-bg: #fef3c7;
+  --hint-fg: #713f12;
+  --hint-line: #d97706;
+  --danger: #b91c1c;
+  --ok: #15803d;
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #0f1417;
+  --surface: #172025;
+  --surface-2: #1f2a30;
+  --fg: #e9edf0;
+  --muted: #a6b0b8;
+  --line: #2c3a41;
+  --field: #71818b;
+  --primary: #5eead4;
+  --primary-hover: #99f6e4;
+  --on-primary: #042f2e;
+  --primary-soft: #134e4a;
+  --focus: #5eead4;
+  --wish: #fcd34d;
+  --outcome: #5eead4;
+  --obstacle: #fda4af;
+  --plan: #a5b4fc;
+  --hint-bg: #3a2a06;
+  --hint-fg: #fde68a;
+  --hint-line: #d97706;
+  --danger: #fca5a5;
+  --ok: #86efac;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-field: var(--field);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-on-primary: var(--on-primary);
+  --color-primary-soft: var(--primary-soft);
+  --color-focus: var(--focus);
+  --color-wish: var(--wish);
+  --color-outcome: var(--outcome);
+  --color-obstacle: var(--obstacle);
+  --color-plan: var(--plan);
+  --color-hint-bg: var(--hint-bg);
+  --color-hint-fg: var(--hint-fg);
+  --color-hint-line: var(--hint-line);
+  --color-danger: var(--danger);
+  --color-ok: var(--ok);
+}
+
+@theme {
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --animate-breathe: breathe 10s ease-in-out infinite;
+
+  @keyframes breathe {
+    0%,
+    100% {
+      transform: scale(0.62);
+    }
+    40% {
+      transform: scale(1);
+    }
+  }
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  background: var(--bg);
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+summary {
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Printing shows only the A6 card rendered into #print-root (see PrintCard). */
+#print-root {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A6 portrait;
+    margin: 7mm;
+  }
+
+  html,
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  #print-root:not(:empty) {
+    display: block;
+  }
+
+  #print-root:not(:empty) ~ #root {
+    display: none;
+  }
+}

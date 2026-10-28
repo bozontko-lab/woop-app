@@ -42,6 +42,19 @@ PWA (mobile-first, interfejs po polsku), która prowadzi przez protokół WOOP /
 
 Wszystkie dane zostają na urządzeniu. Treść WOOP-ów nie trafia do analityki ani nigdzie na zewnątrz. Żadnych zewnętrznych skryptów, fontów z CDN ani trackerów. Wyjątek: funkcje Etapu 3, jeśli użytkownik je włączy.
 
+## Komendy
+
+- `npm run dev` / `npm run build` / `npm run preview`
+- `npm test` (Vitest), `npm run test:e2e` (Playwright na buildzie, port 4173), `npm run lint`, `npm run format`
+- Przed commitem: `npm run lint && npm run build && npm test && npm run test:e2e`
+
+## Gdzie co jest
+
+- Kroki kreatora i ich kolejność: `src/domain/wizard/steps.ts` (silnik: `engine.ts`). Ekrany kroków: `src/features/wizard/steps/`.
+- Walidatory (podpowiedzi): `src/domain/validators/`. Komunikaty podpowiedzi: `pl.nudges` w `src/content/pl.ts`.
+- Wzorcowy WOOP do testów: `src/domain/__fixtures__/reference.ts`. Musi przechodzić bez żadnej podpowiedzi (`src/domain/reference.test.ts`).
+- Zapis: wyłącznie przez `woopRepository` / `settingsRepository` z `src/data/`.
+
 ## Sposób pracy
 
 - Etapami (Etap 1 → 2 → 3). Po każdym etapie: `npm run build` bez błędów, `npm test` i `npm run test:e2e` przechodzą, commit, krótkie podsumowanie i lista rzeczy do ręcznego sprawdzenia.
