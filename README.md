@@ -41,13 +41,13 @@ Testy E2E używają Playwrighta 1.63. Przy pierwszym uruchomieniu poza tym środ
 
 Wszystkie teksty interfejsu (pytania, pytania pomocnicze, przykłady, komunikaty podpowiedzi) oraz słowniki walidatorów są w **`src/content/pl.ts`**. Zmiana tekstu nie wymaga zaglądania do komponentów. W słownikach można pisać z polskimi znakami, a składnia wzorców jest opisana nad sekcją `lexicon`.
 
-## Wdrożenie na Cloudflare Pages
+## Wdrożenie na Cloudflare (Workers)
 
-1. Cloudflare → **Workers & Pages** → **Create** → **Pages** → połącz repozytorium `bozontko-lab/woop-app`.
-2. Ustawienia builda: **Build command** `npm run build`, **Build output directory** `dist`. Wersję Node Cloudflare odczyta z `.nvmrc`.
-3. Gotowe. Brak `404.html` sprawia, że Cloudflare sam serwuje `index.html` dla wszystkich ścieżek (tryb SPA), a `public/_headers` ustawia cache i `noindex`.
+1. Cloudflare → **Workers & Pages** → **Create application** → połącz GitHuba i wybierz repozytorium `bozontko-lab/woop-app`.
+2. Nazwa projektu `woop-app`, **Build command** `npm run build`, **Deploy command** `npx wrangler deploy` (domyślne). Kliknij **Deploy**.
+3. Gotowe: aplikacja działa pod `https://woop-app.<twoja-subdomena>.workers.dev`. Wersję Node build odczyta z `.nvmrc`.
 
-Każdy push na `main` zbuduje i opublikuje nową wersję. Aplikacja zainstalowana na telefonie pokaże komunikat „Jest nowa wersja aplikacji”.
+Konfiguracja jest w `wrangler.jsonc`: statyczne pliki z `dist/` bez kodu Workera, nieznane ścieżki zwracają `index.html` (tryb SPA), a `public/_headers` ustawia cache i `noindex`. Każdy push na `main` zbuduje i opublikuje nową wersję. Aplikacja zainstalowana na telefonie pokaże komunikat „Jest nowa wersja aplikacji”.
 
 ## Struktura
 

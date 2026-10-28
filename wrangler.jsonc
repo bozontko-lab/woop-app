@@ -1,0 +1,10 @@
+// Cloudflare Workers (static assets): the build in `dist/` is served as is, no Worker code.
+// Unknown paths return index.html (SPA), headers come from `public/_headers`.
+{
+  "name": "woop-app",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application",
+  },
+}

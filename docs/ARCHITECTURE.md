@@ -1,6 +1,6 @@
 # Architektura
 
-Prywatna PWA (local-first) hostowana jako statyczny build na Cloudflare Pages. Bez backendu w Etapach 1–2.
+Prywatna PWA (local-first) hostowana jako statyczny build na Cloudflare Workers (same pliki, bez kodu Workera). Bez backendu w Etapach 1–2.
 
 ## Stack
 
@@ -123,7 +123,7 @@ Schemat Dexie: wersja 1 (`woops`, `settings`) i wersja 2 (`checkins` z unikalnym
 ## PWA, hosting, prywatność
 
 - Manifest (`lang: pl`, standalone, ikony 192/512/maskable, apple-touch-icon), precache wszystkich zasobów, fallback nawigacji do `index.html`, baner „Dostępna nowa wersja”. `public/sw-notifications.js` (dołączany do service workera) otwiera właściwy ekran po kliknięciu w powiadomienie.
-- Cloudflare Pages: build `npm run build`, katalog `dist`. Brak `404.html` = automatyczny tryb SPA. `public/_headers` ustawia cache (niezmienne `assets/*`, świeży `sw.js`).
+- Cloudflare Workers ze statycznymi plikami (`wrangler.jsonc`): build `npm run build`, wdrożenie `npx wrangler deploy` z katalogu `dist`, tryb SPA (`not_found_handling: single-page-application`). `public/_headers` ustawia cache (niezmienne `assets/*`, świeży `sw.js`).
 - Prywatna aplikacja: `robots.txt` z `Disallow: /` i `noindex`. Zero analityki, zewnętrznych fontów i skryptów. Powiadomienia są lokalne, bez serwera push.
 
 ## Testy
@@ -138,7 +138,7 @@ Schemat Dexie: wersja 1 (`woops`, `settings`) i wersja 2 (`checkins` z unikalnym
 
 ```
 woop-app/
-├─ CLAUDE.md · README.md · package.json · vite.config.ts · playwright.config.ts · eslint.config.js
+├─ CLAUDE.md · README.md · package.json · vite.config.ts · playwright.config.ts · eslint.config.js · wrangler.jsonc
 ├─ docs/            SPEC.md · DECISIONS.md · ARCHITECTURE.md
 ├─ public/          _headers · robots.txt · favicon.svg · sw-notifications.js · icons/*.png
 ├─ scripts/         generate-icons.mjs (SVG → PNG przez Chromium)
@@ -176,4 +176,4 @@ woop-app/
 
 ## Etap 3 (przygotowanie)
 
-Proxy AI jako Cloudflare Pages Function (`functions/api/feedback.ts`) z kluczem w zmiennych środowiskowych; heurystyki zostają jako fallback. Synchronizację ułatwią warstwa repozytoriów i pola `updatedAt` we wszystkich tabelach. Niezawodne przypomnienia o stałej porze wymagałyby Web Push z serwerem (zob. `DECISIONS.md`, pkt 41).
+Proxy AI jako kod tego samego Workera (`main` w `wrangler.jsonc`, trasy `/api/*`) z kluczem w zmiennych środowiskowych; heurystyki zostają jako fallback. Synchronizację ułatwią warstwa repozytoriów i pola `updatedAt` we wszystkich tabelach. Niezawodne przypomnienia o stałej porze wymagałyby Web Push z serwerem (zob. `DECISIONS.md`, pkt 41).

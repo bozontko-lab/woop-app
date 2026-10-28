@@ -5,7 +5,7 @@ Tu zapisujemy doprecyzowania specyfikacji (`docs/SPEC.md`) i założenia przyję
 ## Ustalenia z pytań doprecyzowujących (2026-10-28)
 
 1. **Odbiorcy: tylko ja i bliscy.** Bez landingu pod SEO i bez Astro. Aplikacja działa pod `/`, a sekcja „Jak to działa” jest w środku. `robots.txt` blokuje indeksowanie, w `index.html` jest `noindex`.
-2. **Hosting: Cloudflare Pages.** Build `npm run build` → `dist/`. Bez pliku `404.html` Cloudflare Pages sam serwuje `index.html` dla nieznanych ścieżek (tryb SPA). Nagłówki cache w `public/_headers`. Proxy AI w Etapie 3 jako Pages Function.
+2. **Hosting: Cloudflare Pages.** Build `npm run build` → `dist/`. Bez pliku `404.html` Cloudflare Pages sam serwuje `index.html` dla nieznanych ścieżek (tryb SPA). Nagłówki cache w `public/_headers`. Proxy AI w Etapie 3 jako Pages Function. _Zmienione w pkt 48: hostujemy na Cloudflare Workers._
 3. **Nazwa: „WOOPmylife”** (wybór użytkownika). Uwaga: to też nazwa oficjalnej strony metody (woopmylife.org), do której linkujemy w „Jak to działa”. Przy prywatnym użytku to w porządku. Przed ewentualną publikacją warto zmienić nazwę, a jest ona w jednej stałej (`pl.app.name` w `src/content/pl.ts`) i w manifeście (`vite.config.ts`). Nie używamy oficjalnego logo ani identyfikacji wizualnej WOOP. Kolory i ikona są własne.
 4. **Repozytorium: `bozontko-lab/woop-app`** na GitHubie. Pushujemy po każdym etapie.
 
@@ -44,7 +44,7 @@ Tu zapisujemy doprecyzowania specyfikacji (`docs/SPEC.md`) i założenia przyję
 27. **Alarm w `.ics`**: `TRIGGER:PT0S` (alarm w chwili wydarzenia), wydarzenia z „pływającym” czasem lokalnym (bez strefy), cykl `DAILY` albo `WEEKLY;BYDAY=…` do końca ram czasowych, linie zawijane do 75 bajtów (RFC 5545). Poprawność sprawdza test z parserem `ical.js`. Zachowanie alarmów po imporcie do Google i Apple Calendar zweryfikujemy w Etapie 2 (punkt 8 specyfikacji).
 28. **Bundle**: React, React Router i Dexie są w osobnych chunkach, żeby aktualizacja aplikacji nie wymuszała ponownego pobierania bibliotek. Całość ~178 KB gzip i cała trafia do precache (offline).
 29. **Ikona i znak** są własne: cztery wznoszące się kroki w kolorach faz W–O–O–P, generowane skryptem `npm run icons`.
-30. **Repozytorium**: kod trafia na gałąź `main` nowego, pustego repozytorium założonego na potrzeby projektu. Cloudflare Pages może z niej publikować automatycznie.
+30. **Repozytorium**: kod trafia na gałąź `main` nowego, pustego repozytorium założonego na potrzeby projektu. Cloudflare może z niej publikować automatycznie.
 31. **Narzędzia testowe**: `@axe-core/playwright` ma wymuszony `playwright-core@1.63.0` (`overrides` w `package.json`), zgodny z przeglądarkami w środowisku. Lighthouse 13 (dostępność) uruchamiany ręcznie, wyniki w podsumowaniu etapu.
 
 ## Etap 2 – decyzje implementacyjne
@@ -79,3 +79,7 @@ Tu zapisujemy doprecyzowania specyfikacji (`docs/SPEC.md`) i założenia przyję
     Import przyjmuje też plik `.json` pojedynczego WOOP-a z eksportu karty. Uszkodzony albo obcy plik daje komunikat i niczego nie zmienia.
 
 47. **Testy E2E niezależne od daty**: dane testowe są liczone względem dzisiejszej daty (`freshWoop` w `e2e/helpers.ts`), więc testy nie zestarzeją się z upływem czasu. Wzorcowy WOOP w testach jednostkowych ma stałą datę (2026-10-28).
+
+## Po Etapie 2
+
+48. **Hosting: Cloudflare Workers ze statycznymi plikami zamiast Pages** (zmienia pkt 2). Panel Cloudflare zakłada teraz nowe projekty z repozytorium jako Workers (build + `npx wrangler deploy`). Bez pliku konfiguracji Workers Builds uruchomiłby automatyczną konfigurację i otworzył PR, więc konfiguracja jest w repozytorium (`wrangler.jsonc`): pliki z `dist/`, bez kodu Workera, `not_found_handling: single-page-application` (nieznane ścieżki zwracają `index.html`). Workers obsługują ten sam plik `public/_headers` co Pages, a sam plik nie jest publicznie dostępny (sprawdzone lokalnie w `wrangler dev`). Build używa Node z `.nvmrc`. W Etapie 3 backend (proxy AI, synchronizacja) będzie kodem tego samego Workera (`main` w `wrangler.jsonc`) zamiast Pages Functions.
